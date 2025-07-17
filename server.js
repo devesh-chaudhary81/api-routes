@@ -11,7 +11,12 @@ import bookUploadRoutes from './routes/bookUplaodRoutes.js'
 
 
 const app = express();
-app.use(cors());
+const allowedOrigins = ["http://localhost:5174"];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
 dotenv.config();
 
 
