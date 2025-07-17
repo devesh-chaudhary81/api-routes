@@ -2,8 +2,11 @@ import mongoose from 'mongoose';
 
 const feedbackSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  message: String,
-  rating: { type: Number, min: 1, max: 5 },
+  message: {type:String},
+  fullName:{type:String},
+  email:{type:String},
+  age:{type:Number},
+  city:{type:String},
   createdAt: { type: Date, default: Date.now }
 });
 

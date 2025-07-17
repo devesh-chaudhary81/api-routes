@@ -6,12 +6,20 @@ import userRoutes from './routes/userRoutes.js'
 import bookRoutes from './routes/bookRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js' 
 import adminRoutes from './routes/adminRoutes.js'
+import bookUploadRoutes from './routes/bookUplaodRoutes.js'
 // import path from "path";
 
 
 const app = express();
 app.use(cors());
 dotenv.config();
+
+
+// cloudinary.config({
+//      cloud_name: process.env.CLOUD_NAME,
+//   api_key: process.env.CLOUD_API_KEY,
+//   api_secret: process.env.CLOUD_API_SECRET,
+// });
 
 
 
@@ -31,5 +39,6 @@ app.use("/api/users",userRoutes);
 app.use("/api/books",bookRoutes);
 app.use("/api",feedbackRoutes);
 app.use("/api/admin",adminRoutes);
+app.use("/api", bookUploadRoutes);
 
 app.listen(PORT, ()=>console.log(`Server started http://localhost:${PORT}`))

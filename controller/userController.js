@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 //register
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email,username, password } = req.body;
     if (!name || !email || !password) {
       return res.status(404).json({
         message: "something is missing in your input",
@@ -17,6 +17,7 @@ export const registerUser = async (req, res) => {
     const newUser = new user({
       name,
       email,
+      username,
       password: hashPassword,
     });
     await newUser.save();

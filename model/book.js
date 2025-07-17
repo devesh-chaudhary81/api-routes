@@ -1,17 +1,16 @@
 import mongoose from 'mongoose';
 
 const bookSchema = new mongoose.Schema({
-  bookId: { type: Number, unique: true, required: true },
-  title: { en: String, hi: String, fr: String },
+  bookId: {type:String, default: () => new mongoose.Types.ObjectId().toString() },
+  title: { type:String},
   author: String,
-  description: { en: String, hi: String, fr: String },
+  description: { type:String},
   categories: [String],
   genres: [String],
-  tags: [String],
   totalPages: Number,
-  content: [{ language: String, contentURL: String }],
+  coverImageURL: { type: String},
+  contentURL:{type:String},
   aiSummary: [{ language: String, summaryText: String }],
-  coverImageURL: String,
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
