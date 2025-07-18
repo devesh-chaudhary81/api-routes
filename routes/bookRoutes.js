@@ -22,8 +22,8 @@ router.get('/search', async (req, res) => {
     const books = await book.find({
       $or: [
         { title: { $regex: query, $options: 'i' } },
-        { categories: { $elemMatch: { $regex: query, $options: 'i' } } },
-        { genres: { $elemMatch: { $regex: query, $options: 'i' } } }
+        { categories: { $in: [new RegExp(query, 'i')] } },
+        { genres: { $in: [new RegExp(query, 'i')] } }
       ]
     });
 
@@ -33,6 +33,7 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
+
 
 
 export default router;
