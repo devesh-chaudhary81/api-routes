@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {AddBook,deleteBook, getBookById, getBooks, updateBook, getSummary} from "../controller/bookController.js";
-import book from "../models/book.js"; // ✅ lowercase "book"
+import book from "../model/book.js"; // ✅ lowercase "book"
 
 const router = Router();
 
