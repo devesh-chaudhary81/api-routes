@@ -6,7 +6,8 @@ import userRoutes from './routes/userRoutes.js'
 import bookRoutes from './routes/bookRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js' 
 import adminRoutes from './routes/adminRoutes.js'
-import bookUploadRoutes from './routes/bookUplaodRoutes.js'
+import bookUploadRoutes from './routes/bookUploadRoutes.js'
+import otpRoutes from './routes/otpRoutes.js'
 // import path from "path";
 
 
@@ -45,5 +46,6 @@ app.use("/api/books",bookRoutes);
 app.use("/api",feedbackRoutes);
 app.use("/api/admin",adminRoutes);
 app.use("/api", bookUploadRoutes);
+app.use("/api/otp", otpRoutes);
 
 app.listen(PORT, ()=>console.log(`Server started http://localhost:${PORT}`))

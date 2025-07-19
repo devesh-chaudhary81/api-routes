@@ -5,10 +5,19 @@ export const getBooks = async (req, res)=>{
     res.status(200).json(books)
 }
 
-export const getBookById = async (req, res)=>{
-    const getById = await book.findById(req.params.id)
-    res.status(200).json(getById)
-}
+export const getBookById = async (req, res) => {
+  try {
+    const getById = await book.findById(req.params.id);
+
+    if (!getById) {
+      return res.status(404).json({ error: 'Book not found' });
+    }
+
+    res.status(200).json(getById);
+  } catch (error) {
+    res.status(500).json({ error: 'Invalid book ID or server error' });
+  }
+};
 
 // export const AddBook = async (req, res)=>{
 //     const newBook = new book(req.body);

@@ -5,11 +5,15 @@ import book from "../model/book.js"; // ✅ lowercase "book"
 const router = Router();
 
 router.get("/", getBooks)
-// router.get("/:id", getBookById)
+router.get("/:id", getBookById)
 router.post("/", AddBook)
 router.put("/:id", updateBook)
 router.delete("/:id", deleteBook)
 router.get("/:id/summary", getSummary)
+
+
+
+
 
 router.get('/search', async (req, res) => {
   const { query } = req.query;
@@ -20,16 +24,16 @@ router.get('/search', async (req, res) => {
 
   try {
     const trimmedQuery = query.trim();
-    console.log("🔍 Received search query:", trimmedQuery);
+    const escapedQuery = trimmedQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // escape regex chars
+    const titleRegex = new RegExp(escapedQuery, 'i');
 
-    const regex = new RegExp(trimmedQuery, 'i');
-    console.log("🧩 Using regex:", regex);
+    console.log(`🔍 Searching for: ${trimmedQuery}`);
 
     const books = await book.find({
       $or: [
-        { title: regex },
-        { categories: { $elemMatch: { $regex: regex } } },
-        { genres: { $elemMatch: { $regex: regex } } }
+        { title: { $regex: titleRegex } },
+        { categories: trimmedQuery }, // exact match in array
+        { genres: trimmedQuery }      // exact match in array
       ]
     });
 
@@ -40,7 +44,6 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
-
 
 
 

@@ -16,13 +16,13 @@ const userSchema = new mongoose.Schema({
     plan: { type: String, enum: ['monthly', 'yearly'] }
   },
 
-  personalShelf: [
+  myShelf: [
     {
       bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
-      status: { type: String, enum: ['want-to-read', 'reading', 'completed'], default: 'want-to-read' },
       lastPageRead: { type: Number, default: 0 }
     }
   ],
+favourites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book' }],
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

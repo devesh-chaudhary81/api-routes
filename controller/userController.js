@@ -1,6 +1,8 @@
 import user from "../model/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import User from '../model/user.js';
+import Book from '../model/book.js';
 
 
 //register
@@ -109,6 +111,86 @@ export const logout = async (req, res)=> {
 });
 }
 };
+
+
+
+
+
+// 📌 Add a book to MyShelf
+export const addToShelf = async (req, res) => {
+  const { userId, bookId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const alreadyAdded = user.myShelf.find(item => item.bookId.toString() === bookId);
+
+    if (!alreadyAdded) {
+      user.myShelf.push({ bookId, lastPageRead: 0 });
+      await user.save();
+    }
+
+    res.json({ message: 'Book added to MyShelf' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to add to MyShelf' });
+  }
+};
+
+// 📌 Get books in MyShelf
+export const getMyShelf = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId).populate('myShelf.bookId');
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    res.json(user.myShelf);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to get MyShelf books' });
+  }
+};
+
+export const addToFavourites = async (req, res) => {
+  const { userId, bookId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (!user.favourites.includes(bookId)) {
+      user.favourites.push(bookId);
+      await user.save();
+    }
+
+    res.status(200).json({ message: 'Book added to favourites' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+
+// 📌 Get Favourite Books
+export const getFavourites = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId).populate('favourites');
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    res.json(user.favourites);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to get favourite books' });
+  }
+};
+
 
 export const updateUser = async (req, res) => {
   const _id = req.params.id;
