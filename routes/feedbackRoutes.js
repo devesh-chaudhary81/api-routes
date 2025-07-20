@@ -1,9 +1,9 @@
 import {Router} from 'express';
-import {getFeedBack , postFeedBack , deleteFeedback} from  "../controller/feedbackController.js"
+import {getFeedBacks , postFeedBack , deleteFeedback} from  "../controller/feedbackController.js"
 
 const router = Router();
 
-router.get("/feedback", getFeedBack);
+router.get("/feedback", getFeedBacks);
 router.post("/feedback", postFeedBack);
 router.get("/feedback/:id", deleteFeedback);
 

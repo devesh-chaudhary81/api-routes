@@ -18,12 +18,18 @@ const userSchema = new mongoose.Schema({
 
   myShelf: [
     {
-      bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
+      bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'book' },
       lastPageRead: { type: Number, default: 0 }
     }
   ],
-favourites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Book' }],
-
+favourites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'book' }],
+totalReadingTime: { type: Number, default: 0 }, // in minutes
+bookViews: [
+  {
+    bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'book' },
+    viewedAt: { type: Date, default: Date.now }
+  }
+],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 })

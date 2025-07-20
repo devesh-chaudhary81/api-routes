@@ -2,7 +2,7 @@ import user from "../model/user.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from '../model/user.js';
-import Book from '../model/book.js';
+import book from '../model/book.js';
 
 
 //register
@@ -139,22 +139,6 @@ export const addToShelf = async (req, res) => {
   }
 };
 
-// 📌 Get books in MyShelf
-export const getMyShelf = async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const user = await User.findById(userId).populate('myShelf.bookId');
-
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    res.json(user.myShelf);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to get MyShelf books' });
-  }
-};
-
 export const addToFavourites = async (req, res) => {
   const { userId, bookId } = req.body;
 
@@ -173,6 +157,24 @@ export const addToFavourites = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+// 📌 Get books in MyShelf
+export const getMyShelf = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId).populate('myShelf.bookId');
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    res.json(user.myShelf);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to get MyShelf books' });
+  }
+};
+
+
 
 
 // 📌 Get Favourite Books
@@ -194,5 +196,39 @@ export const getFavourites = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   const _id = req.params.id;
+};
+
+
+export const getReadingTime = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    const hours = (user.totalReadingTime || 0) / 60;
+    res.json({ hours: hours.toFixed(2) });
+  } catch (error) {
+    console.error("Reading time error:", error);
+    res.status(500).json({ error: "Failed to fetch reading time" });
+  }
+};
+
+export const getUserStats = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).populate("bookViews.bookId");
+    const lastMonth = new Date();
+    lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+    const filteredViews = user.bookViews.filter(
+      (view) => new Date(view.viewedAt) >= lastMonth
+    );
+
+    const totalMinutes = user.totalReadingTime || 0;
+
+    res.json({
+      hoursLastMonth: (totalMinutes / 60).toFixed(2),
+      booksViewed: filteredViews.length,
+    });
+  } catch (error) {
+    console.error("Stats error:", error);
+    res.status(500).json({ error: "Failed to fetch stats" });
+  }
 };
 

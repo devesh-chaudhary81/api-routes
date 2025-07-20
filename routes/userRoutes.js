@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {registerUser, updateUser, login , logout} from "../controller/userController.js";
-import { addToShelf, addToFavourites, getMyShelf, getFavourites } from '../controller/userController.js';
+import { addToShelf, addToFavourites, getMyShelf, getFavourites,getReadingTime,getUserStats } from '../controller/userController.js';
 
 const router = Router();
 
@@ -18,5 +18,11 @@ router.get('/shelf/:userId', getMyShelf);
 
 router.post('/favourites/add', addToFavourites);
 router.get('/favourites/:userId', getFavourites);
+
+router.get("/reading-time/:userId", getReadingTime);
+router.get("/stats/:userId", getUserStats);
+
+
+
 
 export default router;
