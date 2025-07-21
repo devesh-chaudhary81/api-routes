@@ -11,8 +11,9 @@ import otpRoutes from './routes/otpRoutes.js'
 // import path from "path";
 
 
+dotenv.config();
 const app = express();
-const allowedOrigins = ["http://localhost:5173","https://frontend-for-virtual-library-c4222skgk.vercel.app"];
+const allowedOrigins = ["http://localhost:5173","https://frontend-for-virtual-library-ekg52sofy.vercel.app"];
 
 app.use(cors({
   origin: allowedOrigins,
