@@ -13,12 +13,14 @@ import otpRoutes from './routes/otpRoutes.js'
 
 dotenv.config();
 const app = express();
-const allowedOrigins = ["http://localhost:5173","https://frontend-for-virtual-library-ekg52sofy.vercel.app"];
+const allowedOrigins = ["http://localhost:5173","https://frontend-for-virtual-library.vercel.app"];
 
 app.use(cors({
   origin: allowedOrigins,
   credentials: true,
 }));
+
+// app.options('*', cors());
 dotenv.config();
 
 
