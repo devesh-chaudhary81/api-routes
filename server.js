@@ -12,7 +12,7 @@ import otpRoutes from './routes/otpRoutes.js'
 
 
 const app = express();
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = ["http://localhost:5173","https://frontend-for-virtual-library-c4222skgk.vercel.app"];
 
 app.use(cors({
   origin: allowedOrigins,
