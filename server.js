@@ -15,11 +15,21 @@ dotenv.config();
 const app = express();
 const allowedOrigins = ["http://localhost:5173","https://frontend-for-virtual-library.vercel.app"];
 
+// app.use(cors({
+//   origin: allowedOrigins,
+//   credentials: true,
+// }));
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin like curl or mobile apps
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 }));
-
 // app.options('*', cors());
 dotenv.config();
 
