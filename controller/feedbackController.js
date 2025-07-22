@@ -27,3 +27,4 @@ export const deleteFeedback = async (req,res) =>{
     const deleteFeedback = await feedback.findByIdAndDelete(req.params.id)
         res.status(200).json(deleteFeedback)
 }
+

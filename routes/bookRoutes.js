@@ -60,63 +60,53 @@
 
 
 import { Router } from "express";
+import {AddBook,deleteBook, getBookById, getBooks, updateBook} from "../controller/bookController.js";
+
 import fs from "fs/promises";
 import pdfParse from "pdf-parse";
 import multer from 'multer';
 import fetch from 'node-fetch';
 import { PDFDocument } from 'pdf-lib';
-
-import {
-  AddBook,
-  deleteBook,
-  getBooks,
-  updateBook,
-  getSummary,
-} from "../controller/bookController.js";
-
-import book from "../model/book.js";
-
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
+ // ✅ lowercase "book"
 
 const router = Router();
 
-// 📚 CRUD Routes
-router.get("/", getBooks);
-router.post("/", AddBook);
-router.put("/:id", updateBook);
-router.delete("/:id", deleteBook);
-router.get("/summary", getSummary);
+router.get("/", getBooks)
+// router.get("/:id", getBookById)
+router.post("/", AddBook)
+router.put("/:id", updateBook)
+router.delete("/:id", deleteBook)
 
-// 🔍 Book Search Route
-router.get("/search", async (req, res) => {
+router.get('/search', async (req, res) => {
   const { query } = req.query;
 
-  if (!query || typeof query !== "string") {
-    return res.status(400).json({ error: "Query string is required" });
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({ error: 'Query string is required' });
   }
 
   try {
-    const regex = new RegExp(query.trim(), "i");
+    const trimmedQuery = query.trim();
+    console.log("🔍 Received search query:", trimmedQuery);
+
+    const regex = new RegExp(trimmedQuery, 'i');
+    console.log("🧩 Using regex:", regex);
+
     const books = await book.find({
       $or: [
         { title: regex },
         { categories: { $elemMatch: { $regex: regex } } },
-        { genres: { $elemMatch: { $regex: regex } } },
-      ],
+        { genres: { $elemMatch: { $regex: regex } } }
+      ]
     });
 
+    console.log(`✅ Found ${books.length} book(s)`);
     res.status(200).json(books);
   } catch (error) {
     console.error("❌ Search Error:", error.stack);
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
-
-
-
-// 🧠 Summarization function
-async function summarizeText(text) {
+async function summarizeTextRange(text) {
   const headers = {
     "x-apihub-key": "c7YICTGCb37mKlCnKrXwE0LscPYfv2ORjUIjamdDqs-nLUEHwK",
     "x-apihub-host": "Cheapest-GPT-AI-Summarization.allthingsdev.co",
@@ -124,32 +114,80 @@ async function summarizeText(text) {
     "Content-Type": "application/json"
   };
 
-  const prompt = `You are a helpful assistant summarizing the content of a book page.
+ const prompt = `
+You are an intelligent virtual study assistant that extracts highly structured, educational notes from textbooks and study material. The user provides you cleaned text extracted from a specific range of book pages . Your task is to create frontend-friendly, aesthetically formatted, and deeply meaningful notes.
 
-Summarize the given content clearly and concisely, in a well-structured format.
+🧠 OBJECTIVE
+Generate human-like, well-organized chapter-wise notes suitable for display in an online library or e-learning platform.
 
-**Guidelines**:
-- Provide a heading for the overall topic.
-- Use bullet points for key ideas.
-- Include subheadings if the content has sections or concepts.
-- Focus only on meaningful and educational points.
-- Keep it short, informative, and readable.
+📝 OUTPUT STRUCTURE
+Use proper Markdown formatting with spacing for clear readability and frontend styling.
 
-Output format:
----
-## [Main Heading]
+📌 Title (H1)
 
-### [Subheading 1]
-- Bullet point 1
-- Bullet point 2
+Create a bold, informative title summarizing the content of the selected page range.
 
-### [Subheading 2]
-- Bullet point 1
-- Bullet point 2
----
+Make it short, engaging, and meaningful (not just "Chapter 1").
 
+## Main Headings (H2)
 
-Content:\n${text}`;
+Identify 2–6 major concepts or sections within the content.
+
+Label each with meaningful H2 markdown.
+
+(Add one empty line after each H2 for spacing.)
+
+### Subheadings (H3)
+
+Under each H2, break down into key subtopics using H3.
+
+Each subheading must include a short paragraph summary, followed by bullet points.
+
+(Add one empty line after each H3 for spacing.)
+
+- Bullet Points:
+
+Use - for bullet points.
+
+Each point should include:
+
+Key ideas
+
+Bold definitions or terms
+
+Short examples, dates, formulas, or keywords
+
+Be clear, focused, and student-friendly
+
+✨ Summary Line (Optional)
+
+At the end of each subheading, include a 1-line italic summary or key takeaway.
+
+🖼️ FORMATTING RULES
+Use Markdown (#, ##, ###) for all headings and subheadings.
+
+Add one empty line after each heading and subheading for visual separation.
+
+Use bold (**term**) for important concepts.
+
+Do not return unstructured paragraphs.
+
+Make it visually scannable — like well-prepared study notes.
+
+Ensure frontend compatibility: notes should look neat when rendered on a webpage.
+
+🔍 TONE & QUALITY
+Academic but engaging.
+
+Like a top-performing student’s notes.
+
+Avoid fluff or overly technical jargon.
+
+Prioritize understanding, not just summarizing.
+
+${text}
+`;
+
 
   const body = JSON.stringify({ text: prompt, length: "15", style: "text" });
 
@@ -164,74 +202,70 @@ Content:\n${text}`;
     const result = JSON.parse(resultText);
     return result?.summary || result?.result || "[No summary returned]";
   } catch (err) {
-    console.error("❌ Error summarizing:", err.message);
+    console.error("❌ Error summarizing range:", err.message);
     return "[Summarization failed]";
   }
 }
 
 
-// 📄 Upload PDF and return summarized content
-router.post("/summary-by-page", async (req, res) => {
-  const { pdfUrl, pageNumber } = req.body;
 
-  if (!pdfUrl || !pageNumber) {
-    return res.status(400).json({ error: "pdfUrl and pageNumber are required" });
+// 📄 Upload PDF and return summarized content
+router.post("/summary-by-range", async (req, res) => {
+  const { pdfUrl, startPage, endPage } = req.body;
+
+  if (!pdfUrl || !startPage || !endPage) {
+    return res.status(400).json({ error: "pdfUrl, startPage, and endPage are required" });
+  }
+
+  if (endPage - startPage + 1 > 20) {
+    return res.status(400).json({ error: "Page range should not exceed 20 pages." });
   }
 
   try {
     console.log("🔹 Downloading PDF...");
     const response = await fetch(pdfUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
-    }
+    if (!response.ok) throw new Error("Failed to fetch PDF");
     const fullPdfBytes = await response.arrayBuffer();
 
-    console.log("🔹 Loading PDF...");
     const fullPdfDoc = await PDFDocument.load(fullPdfBytes);
     const newPdfDoc = await PDFDocument.create();
     const totalPages = fullPdfDoc.getPageCount();
 
-    if (pageNumber < 1 || pageNumber > totalPages) {
-      return res.status(400).json({ error: `Page number must be between 1 and ${totalPages}` });
+    if (startPage < 1 || endPage > totalPages) {
+      return res.status(400).json({ error: `Page range must be between 1 and ${totalPages} `});
     }
 
-    console.log(`🔹 Extracting page ${pageNumber}...`);
-    const [extractedPage] = await newPdfDoc.copyPages(fullPdfDoc, [pageNumber - 1]);
-    newPdfDoc.addPage(extractedPage);
-    const singlePagePdfBytes = await newPdfDoc.save();
+    console.log(`🔹 Extracting pages ${startPage} to ${endPage}...`);
+    const pageIndexes = Array.from(
+      { length: endPage - startPage + 1 },
+      (_, i) => i + startPage - 1
+    );
 
-    console.log("🔹 Parsing PDF...");
-    const parsed = await pdfParse(singlePagePdfBytes);
-    let rawText = parsed.text;
+    const extractedPages = await newPdfDoc.copyPages(fullPdfDoc, pageIndexes);
+    extractedPages.forEach((page) => newPdfDoc.addPage(page));
 
-    console.log("🔹 Cleaning text...");
-    let cleaned = rawText
+    const rangePdfBytes = await newPdfDoc.save();
+    const parsed = await pdfParse(rangePdfBytes);
+    const rawText = parsed.text;
+
+    const cleaned = rawText
       .replace(/[\r\n\t]+/g, " ")
       .replace(/\s+/g, " ")
       .replace(/[^a-zA-Z0-9.,;:'\"()?!\- ]/g, "")
       .trim();
 
-    if (!cleaned || cleaned.length < 10) {
-      return res.status(400).json({ error: "Not enough text found on this page to summarize." });
+    if (!cleaned || cleaned.length < 30) {
+      return res.status(400).json({ error: "Not enough valid text found in the selected pages." });
     }
 
-    console.log("🔹 Summarizing text...");
-    const summary = await summarizeText(cleaned);
+    console.log("🔹 Summarizing the full range...");
+    const summary = await summarizeTextRange(cleaned);
 
-    console.log("✅ Summary generated.");
-    res.json({ summary: summary.trim() });
+    console.log("✅ Range summary generated.");
+    res.json({ summary });
   } catch (err) {
-    console.error("❌ Page Summary Error:", err);
-    res.status(500).json({ error: "Failed to summarize specific page." });
+    console.error("❌ Range Summary Error:", err);
+    res.status(500).json({ error: "Failed to summarize the page range." });
   }
 });
-
-
-
-router.post('/open', async (req, res) => {
-  const { url, bookId } = req.body;
-  console.log(`User started reading book ${bookId} from URL: ${url}`);
-  res.json({ message: "Book opened logged" });
-});
-
 export default router;

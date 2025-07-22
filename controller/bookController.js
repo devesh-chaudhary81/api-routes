@@ -61,7 +61,3 @@ export const deleteBook = async(req, res)=>{
     res.status(200).json(deleteBook)
 }
 
-export const getSummary = async (req, res)=>{
-    await res.status(200).send(`<h1> this is your summary</h1>`)
-    
-}

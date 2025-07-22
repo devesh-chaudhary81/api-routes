@@ -64,7 +64,8 @@ export const login = async (req, res) => {
     const tokendata = {
       userId: User._id,
       name: User.name,
-      email:User.email
+      email:User.email,
+      username: User.username
     };
      console.log(User);
     const token = await jwt.sign(tokendata, process.env.SECRET_KEY, {
@@ -194,9 +195,34 @@ export const getFavourites = async (req, res) => {
 };
 
 
+
 export const updateUser = async (req, res) => {
   const _id = req.params.id;
+  const { name, username, email, password } = req.body;
+
+  try {
+    const updateFields = {
+      name,
+      username,
+      email,
+      updatedAt: new Date()
+    };
+
+    if (password && password.trim() !== '') {
+      const hashed = await bcrypt.hash(password, 10);
+      updateFields.password = hashed;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(_id, updateFields, { new: true });
+
+    if (!updatedUser) return res.status(404).json({ message: "User not found" });
+
+    res.status(200).json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
 };
+
 
 
 export const getReadingTime = async (req, res) => {
