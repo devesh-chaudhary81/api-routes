@@ -73,7 +73,6 @@ import book from "../model/book.js";
 const router = Router();
 
 router.get("/", getBooks)
-router.get("/:id", getBookById)
 router.post("/", AddBook)
 router.put("/:id", updateBook)
 router.delete("/:id", deleteBook)
@@ -108,6 +107,8 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
+router.get("/:id", getBookById)
+
 async function summarizeTextRange(text) {
   const headers = {
     "x-apihub-key": "c7YICTGCb37mKlCnKrXwE0LscPYfv2ORjUIjamdDqs-nLUEHwK",
