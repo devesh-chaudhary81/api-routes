@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
   userId: { type:String, default: () => new mongoose.Types.ObjectId().toString() },
   name: {type:String,required:true},
   email: { type: String,unique:true,required:true },
-  username:{type:String,required:true},
+  username:{type:String},
   password: {type:String,required:true}, // hashed
   preferredLanguage: { type: String, default: 'en' },
   interests: [String], // ['fiction', 'java', 'science']

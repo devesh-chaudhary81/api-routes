@@ -67,6 +67,7 @@ import pdfParse from "pdf-parse";
 import multer from 'multer';
 import fetch from 'node-fetch';
 import { PDFDocument } from 'pdf-lib';
+import book from "../model/book.js";
  // ✅ lowercase "book"
 
 const router = Router();
