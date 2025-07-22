@@ -73,10 +73,11 @@ import book from "../model/book.js";
 const router = Router();
 
 router.get("/", getBooks)
-// router.get("/:id", getBookById)
+router.get("/:id", getBookById)
 router.post("/", AddBook)
 router.put("/:id", updateBook)
 router.delete("/:id", deleteBook)
+
 
 router.get('/search', async (req, res) => {
   const { query } = req.query;
@@ -270,3 +271,4 @@ router.post("/summary-by-range", async (req, res) => {
   }
 });
 export default router;
+
