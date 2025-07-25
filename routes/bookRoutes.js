@@ -182,7 +182,7 @@ ${text}
 
 
 // 📄 Upload PDF and return summarized content
-router.post("/summary-by-range", async (req, res) => {
+router.post("/quiz-by-range", async (req, res) => {
   const { pdfUrl, startPage, endPage } = req.body;
 
   if (!pdfUrl || !startPage || !endPage) {
