@@ -78,30 +78,10 @@ const router = Router();
 
 router.get("/", getBooks)
 router.post("/", AddBook)
-router.put("/:id", updateBook)
+// router.put("/:id", updateBook)
 router.delete("/:id", deleteBook)
 
-router.get("/:id", async (req, res) => {
-  try {
-    const bookId = req.params.id;
 
-    // Check if ID is a valid MongoDB ObjectId
-    if (!bookId.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ message: "Invalid book ID format" });
-    }
-
-    const book = await Book.findById(bookId);
-
-    if (!book) {
-      return res.status(404).json({ message: "Book not found" });
-    }
-
-    res.status(200).json(book);
-  } catch (error) {
-    console.error("Error fetching book by ID:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-})
 
 router.get('/search', async (req, res) => {
   const { query } = req.query;
@@ -132,7 +112,8 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
-// router.get("/:id", getBookById);
+
+
 
 async function summarizeTextRange(text) {
   const headers = {
@@ -529,5 +510,28 @@ router.get("/reading-stats", async (req, res) => {
     res.status(500).json({ error: 'Server Error while fetching reading stats' });
   }
 });
+
+
+router.get("/:id", async (req, res) => {
+  try {
+    const bookId = req.params.id;
+
+    // Check if ID is a valid MongoDB ObjectId
+    if (!bookId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "Invalid book ID format" });
+    }
+
+    const book = await Book.findById(bookId);
+
+    if (!book) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    res.status(200).json(book);
+  } catch (error) {
+    console.error("Error fetching book by ID:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+})
 
 export default router;
