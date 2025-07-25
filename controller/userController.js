@@ -159,6 +159,41 @@ export const addToFavourites = async (req, res) => {
   }
 };
 
+export const removeFromMyShelf = async (req, res) => {
+  const { userId, bookId } = req.params;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.myShelf = user.myShelf.filter(item => item.bookId.toString() !== bookId);
+    await user.save();
+
+    res.json({ message: "Book removed from MyShelf" });
+  } catch (err) {
+    console.error("Remove shelf error:", err);
+    res.status(500).json({ error: "Failed to remove from MyShelf" });
+  }
+};
+
+export const removeFavourites = async (req, res) => {
+  const { userId, bookId } = req.params;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.favourites = user.favourites.filter(id => id.toString() !== bookId);
+    await user.save();
+
+    res.json({ message: "Book removed from favourites" });
+  } catch (err) {
+    console.error("Remove favourites error:", err);
+    res.status(500).json({ error: "Failed to remove from favourites" });
+  }
+};
+
+
 // 📌 Get books in MyShelf
 export const getMyShelf = async (req, res) => {
   const { userId } = req.params;

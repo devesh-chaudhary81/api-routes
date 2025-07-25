@@ -12,7 +12,14 @@ const bookSchema = new mongoose.Schema({
   contentURL:{type:String},
   aiSummary: [{ language: String, summaryText: String }],
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
+  bookViews: [
+  {
+    bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
+    viewedAt: { type: Date, default: Date.now },
+    timeSpent: { type: Number, default: 0 }, // in minutes
+  }
+],
 });
 
 

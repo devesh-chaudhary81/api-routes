@@ -31,7 +31,22 @@ bookViews: [
   }
 ],
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
+ bookViews: [
+  {
+    bookId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'book'
+    },
+    viewedAt: Date,
+    timeSpent: {
+      type: Number, // in minutes or seconds
+      default: 0
+    }
+  }
+]
+
+
 })
 
 export default mongoose.model("user", userSchema)

@@ -68,6 +68,7 @@ import multer from 'multer';
 import fetch from 'node-fetch';
 import { PDFDocument } from 'pdf-lib';
 import book from "../model/book.js";
+import User from '../model/user.js';
  // ✅ lowercase "book"
 
 const router = Router();
@@ -76,6 +77,7 @@ router.get("/", getBooks)
 router.post("/", AddBook)
 router.put("/:id", updateBook)
 router.delete("/:id", deleteBook)
+
 
 
 router.get('/search', async (req, res) => {
@@ -118,75 +120,42 @@ async function summarizeTextRange(text) {
   };
 
  const prompt = `
-You are an intelligent virtual study assistant that extracts highly structured, educational notes from textbooks and study material. The user provides you cleaned text extracted from a specific range of book pages . Your task is to create frontend-friendly, aesthetically formatted, and deeply meaningful notes.
+ 🧠 OBJECTIVE
+You are an intelligent quiz generator for digital learning. Given cleaned educational text from a book or study material, your task is to generate 10 high-quality multiple-choice questions (MCQs) that help students test their understanding of the topic.
 
-🧠 OBJECTIVE
-Generate human-like, well-organized chapter-wise notes suitable for display in an online library or e-learning platform.
 
-📝 OUTPUT STRUCTURE
-Use proper Markdown formatting with spacing for clear readability and frontend styling.
+ 📚 QUIZ GENERATION RULES
+Cover a wide range of concepts across the input text.
 
-📌 Title (H1)
+Include a mix of question types:
 
-Create a bold, informative title summarizing the content of the selected page range.
+Recall (facts, terms, definitions)
 
-Make it short, engaging, and meaningful (not just "Chapter 1").
+Understanding (explain ideas, relationships)
 
-## Main Headings (H2)
+Application (apply ideas in context)
 
-Identify 2–6 major concepts or sections within the content.
+Use student-friendly wording – clear, academic, but not overly complex.
 
-Label each with meaningful H2 markdown.
+Avoid filler or obviously wrong options — all choices should be plausible.
 
-(Add one empty line after each H2 for spacing.)
+Ensure only one correct answer per question.
 
-### Subheadings (H3)
+Do not repeat questions or options.
 
-Under each H2, break down into key subtopics using H3.
+Avoid asking questions that rely on content not present in the input.
 
-Each subheading must include a short paragraph summary, followed by bullet points.
+💡 QUALITY STANDARDS
+Varied difficulty (easy to moderate-hard).
 
-(Add one empty line after each H3 for spacing.)
+Well-balanced across the content: don’t focus too much on a single part.
 
-- Bullet Points:
+Use accurate facts and logical reasoning based on the input.
 
-Use - for bullet points.
+No typos or grammar mistakes.
 
-Each point should include:
-
-Key ideas
-
-Bold definitions or terms
-
-Short examples, dates, formulas, or keywords
-
-Be clear, focused, and student-friendly
-
-✨ Summary Line (Optional)
-
-At the end of each subheading, include a 1-line italic summary or key takeaway.
-
-🖼️ FORMATTING RULES
-Use Markdown (#, ##, ###) for all headings and subheadings.
-
-Add one empty line after each heading and subheading for visual separation.
-
-Use bold (**term**) for important concepts.
-
-Do not return unstructured paragraphs.
-
-Make it visually scannable — like well-prepared study notes.
-
-Ensure frontend compatibility: notes should look neat when rendered on a webpage.
-
-🔍 TONE & QUALITY
-Academic but engaging.
-
-Like a top-performing student’s notes.
-
-Avoid fluff or overly technical jargon.
-
-Prioritize understanding, not just summarizing.
+Make it usable for frontend quiz interfaces.
+.
 
 ${text}
 `;
@@ -271,5 +240,50 @@ router.post("/summary-by-range", async (req, res) => {
     res.status(500).json({ error: "Failed to summarize the page range." });
   }
 });
+
+router.post('/open', async (req, res) => {
+  const { userId, bookId, timeSpent } = req.body;
+
+  if (!userId || !bookId) {
+    return res.status(400).json({ error: 'Missing userId or bookId' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const today = new Date().toDateString();
+
+    const alreadyViewedToday = user.bookViews.some(view => {
+      const viewedDate = new Date(view.viewedAt).toDateString();
+      return view.bookId.toString() === bookId && viewedDate === today;
+    });
+
+    if (!alreadyViewedToday) {
+      user.bookViews.unshift({
+        bookId,
+        viewedAt: new Date(),
+        timeSpent: timeSpent || 0,
+      });
+
+      await user.save();
+    }
+
+    // ✅ This line was outside the try block before – fixed now
+    res.status(200).json({
+      message: alreadyViewedToday ? 'Already logged today' : 'Book view logged successfully'
+    });
+
+  } catch (err) {
+    console.error('Error in /api/books/open:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+
+// routes/userRoutes.js
+
+
 export default router;
 
