@@ -127,39 +127,37 @@ async function summarizeTextRange(text) {
  🧠 OBJECTIVE
 You are an intelligent quiz generator for digital learning. Given cleaned educational text from a book or study material, your task is to generate 10 high-quality multiple-choice questions (MCQs) that help students test their understanding of the topic.
 
-
- 📚 QUIZ GENERATION RULES
-Cover a wide range of concepts across the input text.
-
-Include a mix of question types:
-
-Recall (facts, terms, definitions)
-
-Understanding (explain ideas, relationships)
-
-Application (apply ideas in context)
-
-Use student-friendly wording – clear, academic, but not overly complex.
-
-Avoid filler or obviously wrong options — all choices should be plausible.
-
-Ensure only one correct answer per question.
-
-Do not repeat questions or options.
-
-Avoid asking questions that rely on content not present in the input.
+📚 QUIZ GENERATION RULES
+1. Cover a wide range of concepts across the input text.
+2. Include a mix of question types:
+   - Recall (facts, terms, definitions)
+   - Understanding (explain ideas, relationships)
+   - Application (apply ideas in context)
+3. Use student-friendly wording – clear, academic, but not overly complex.
+4. Avoid filler or obviously wrong options — all choices should be plausible.
+5. Ensure only one correct answer per question.
+6. Do not repeat questions or options.
+7. Avoid asking questions that rely on content not present in the input.
 
 💡 QUALITY STANDARDS
-Varied difficulty (easy to moderate-hard).
+1. Varied difficulty (easy to moderate-hard).
+2. Well-balanced across the content: don’t focus too much on a single part.
+3. Use accurate facts and logical reasoning based on the input.
+4. No typos or grammar mistakes.
+5. Make it usable for frontend quiz interfaces.
 
-Well-balanced across the content: don’t focus too much on a single part.
+📦 OUTPUT FORMAT (STRICTLY FOLLOW THIS JSON you dont have any other option otherwise it will fail. striclty strictly follow this json)
 
-Use accurate facts and logical reasoning based on the input.
+  [
+    {
+      "question": "string",
+      "options": ["option1", "option2", "option3", "option4"],
+      "correctAnswer": "one of the options"
+    },
+  
+  ]
 
-No typos or grammar mistakes.
 
-Make it usable for frontend quiz interfaces.
-.
 
 ${text}
 `;
@@ -176,6 +174,7 @@ ${text}
 
     const resultText = await res.text();
     const result = JSON.parse(resultText);
+    console.log(result);
     return result?.summary || result?.result || "[No summary returned]";
   } catch (err) {
     console.error("❌ Error summarizing range:", err.message);
@@ -235,10 +234,17 @@ router.post("/quiz-by-range", async (req, res) => {
     }
 
     console.log("🔹 Summarizing the full range...");
-    const summary = await summarizeTextRange(cleaned);
+    let summary = await summarizeTextRange(cleaned);
 
     console.log("✅ Range summary generated.");
+    const start = summary.indexOf("[");
+  const end = summary.lastIndexOf("]") + 1;
+
+  summary = summary.substring(start,end);
+
+    console.log(summary);
     res.json({ summary });
+
   } catch (err) {
     console.error("❌ Range Summary Error:", err);
     res.status(500).json({ error: "Failed to summarize the page range." });
