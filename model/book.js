@@ -20,7 +20,26 @@ const bookSchema = new mongoose.Schema({
     timeSpent: { type: Number, default: 0 }, // in minutes
   }
 ],
+
+ ratings: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "user" },
+      rating: { type: Number, min: 1, max: 5 }
+    }
+  ],
+  averageRating: { type: Number, default: 0 }
+
+
 });
+
+bookSchema.methods.calculateAverageRating = function () {
+  if (this.ratings.length === 0) {
+    this.averageRating = 0;
+  } else {
+    const total = this.ratings.reduce((sum, r) => sum + r.rating, 0);
+    this.averageRating = total / this.ratings.length;
+  }
+};
 
 
 export default mongoose.model("book", bookSchema)

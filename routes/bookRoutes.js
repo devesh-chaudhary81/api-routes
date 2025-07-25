@@ -103,7 +103,7 @@ router.get('/search', async (req, res) => {
         { categories: { $elemMatch: { $regex: regex } } },
         { genres: { $elemMatch: { $regex: regex } } }
       ]
-    });
+    }).select('title author coverImageURL averageRating');
 
     console.log(`✅ Found ${books.length} book(s)`);
     res.status(200).json(books);
@@ -487,11 +487,11 @@ router.get("/reading-stats", async (req, res) => {
  
   try {
     // Fetch BookRead entries
-    const allReads = await BookRead.find({ userId }).sort({ updatedAt: -1 }).lean();
+    const allReads = await BookRead.find({ userId }).sort({ minutesRead: -1 }).lean();
  
     console.log("📚 allReads:", allReads);
  
-    const recentReads = allReads.slice(0, 5);
+    const recentReads = allReads.slice(0, 10);
  
     const books = [];
  
@@ -539,5 +539,32 @@ router.get("/:id", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 })
+
+
+
+router.post("/:bookId/rate", async (req, res) => {
+  try {
+    const { bookId } = req.params;
+    const { userId, rating } = req.body;
+
+    const book = await Book.findById(bookId);
+    if (!book) return res.status(404).json({ message: "Book not found" });
+
+    // Check if user already rated
+    const existingRating = book.ratings.find(r => r.userId.toString() === userId);
+    if (existingRating) {
+      existingRating.rating = rating; // Update rating
+    } else {
+      book.ratings.push({ userId, rating });
+    }
+
+    book.calculateAverageRating();
+    await book.save();
+
+    res.json({ averageRating: book.averageRating, ratingsCount: book.ratings.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 export default router;
