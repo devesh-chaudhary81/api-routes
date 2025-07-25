@@ -69,6 +69,8 @@ import fetch from 'node-fetch';
 import { PDFDocument } from 'pdf-lib';
 import book from "../model/book.js";
 import User from '../model/user.js';
+import BookRead from '../model/BookRead.js'
+import mongoose from "mongoose";
  // ✅ lowercase "book"
 
 const router = Router();
@@ -109,7 +111,7 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: "Internal server error", details: error.message });
   }
 });
-router.get("/:id", getBookById)
+// router.get("/:id", getBookById);
 
 async function summarizeTextRange(text) {
   const headers = {
@@ -285,5 +287,226 @@ router.post('/open', async (req, res) => {
 // routes/userRoutes.js
 
 
-export default router;
+router.post("/Notes-by-range", async (req, res) => {
+  const { pdfUrl, startPage, endPage } = req.body;
 
+  if (!pdfUrl || !startPage || !endPage) {
+    return res.status(400).json({ error: "pdfUrl, startPage, and endPage are required" });
+  }
+
+  if (endPage - startPage + 1 > 20) {
+    return res.status(400).json({ error: "Page range should not exceed 20 pages." });
+  }
+
+  try {
+    console.log("🔹 Downloading PDF...");
+    const response = await fetch(pdfUrl);
+    if (!response.ok) throw new Error("Failed to fetch PDF");
+    const fullPdfBytes = await response.arrayBuffer();
+
+    const fullPdfDoc = await PDFDocument.load(fullPdfBytes);
+    const newPdfDoc = await PDFDocument.create();
+    const totalPages = fullPdfDoc.getPageCount();
+
+    if (startPage < 1 || endPage > totalPages) {
+      return res.status(400).json({ error: `Page range must be between 1 and ${totalPages} `});
+    }
+
+    console.log(`🔹 Extracting pages ${startPage} to ${endPage}...`);
+    const pageIndexes = Array.from(
+      { length: endPage - startPage + 1 },
+      (_, i) => i + startPage - 1
+    );
+
+    const extractedPages = await newPdfDoc.copyPages(fullPdfDoc, pageIndexes);
+    extractedPages.forEach((page) => newPdfDoc.addPage(page));
+
+    const rangePdfBytes = await newPdfDoc.save();
+    const parsed = await pdfParse(rangePdfBytes);
+    const rawText = parsed.text;
+
+    const cleaned = rawText
+      .replace(/[\r\n\t]+/g, " ")
+      .replace(/\s+/g, " ")
+      .replace(/[^a-zA-Z0-9.,;:'\"()?!\- ]/g, "")
+      .trim();
+
+    if (!cleaned || cleaned.length < 30) {
+      return res.status(400).json({ error: "Not enough valid text found in the selected pages." });
+    }
+
+    console.log("🔹 Summarizing the full range...");
+    const summary = await notesByRange(cleaned);
+
+    console.log("✅ Range summary generated.");
+    res.json({ summary });
+  } catch (err) {
+    console.error("❌ Range Summary Error:", err);
+    res.status(500).json({ error: "Failed to summarize the page range." });
+  }
+});
+
+
+
+
+async function notesByRange(text) {
+  const headers = {
+    "x-apihub-key": "c7YICTGCb37mKlCnKrXwE0LscPYfv2ORjUIjamdDqs-nLUEHwK",
+    "x-apihub-host": "Cheapest-GPT-AI-Summarization.allthingsdev.co",
+    "x-apihub-endpoint": "cba23f99-e8fb-4d0c-ab0b-2e0b38cc47b4",
+    "Content-Type": "application/json"
+  };
+
+ const prompt = `
+You are an intelligent academic note generator for digital learning platforms. Given clean, extracted educational text (from a book, textbook, or academic resource), your task is to generate well-structured, comprehensive study notes based on a specified page range. These notes will help students quickly understand and revise the content.
+
+📘 INPUT FORMAT
+You will receive:
+
+Cleaned text content extracted from a book or study material.
+
+A page range (e.g., from page 15 to page 22) that the user selects as the scope for note generation.
+
+🧾 NOTE GENERATION RULES
+Organize the content clearly using appropriate:
+
+Main headings (based on major topics)
+
+Subheadings (to break down key concepts)
+
+Paragraphs (for clear explanation)
+
+Bullet points or numbered lists (for definitions, features, steps, advantages, etc.)
+
+Highlight important terms or concepts (bold or italicize where appropriate)
+
+Maintain logical flow and structure:
+
+Start with an overview/introduction if applicable
+
+Break down the content sequentially as it appears in the page range
+
+Use consistent formatting for each section
+
+Content types to include:
+
+Key definitions and terms
+
+Important formulas or diagrams (describe them if image is not present)
+
+Summary of theories, principles, or models
+
+Examples and applications if mentioned
+
+Comparison tables or structured lists (if content suits that format)
+
+Use academic yet student-friendly language:
+
+Clear, concise, and easy to read
+
+Avoid overly complex jargon unless essential, and explain it if used
+
+🧩 QUALITY STANDARDS
+Notes must be accurate, complete, and logically structured
+
+Cover all important concepts in the selected range
+
+Avoid copying the text verbatim unless quoting a definition — paraphrase and condense
+
+No spelling or grammar errors
+
+No repetition or filler content
+
+Ensure the output is frontend-display friendly (usable in a React/HTML UI)q
+
+${text}
+`;
+
+
+  const body = JSON.stringify({ text: prompt, length: "15", style: "text" });
+
+  try {
+    const res = await fetch("https://Cheapest-GPT-AI-Summarization.proxy-production.allthingsdev.co/api/summarize", {
+      method: "POST",
+      headers,
+      body
+    });
+
+    const resultText = await res.text();
+    const result = JSON.parse(resultText);
+    return result?.summary || result?.result || "[No summary returned]";
+  } catch (err) {
+    console.error("❌ Error summarizing range:", err.message);
+    return "[Summarization failed]";
+  }
+}
+
+
+router.post("/stats/update-reading-time", async (req, res) => {
+  try {
+    console.log("start update the timer");
+    const { bookId, userId,minutesRead } = req.body;
+    console.log(req.body);
+   
+ 
+   
+ 
+    const existing = await BookRead.findOne({ userId, bookId });
+ 
+    if (existing) {
+      existing.totalReadingTime += minutesRead;
+      existing.updatedAt = Date.now();
+      await existing.save();
+    } else {
+      await BookRead.create({ userId:userId, bookId:bookId, minutesRead: minutesRead });
+    }
+ 
+    res.status(200).json({ message: "Reading time updated successfully" });
+  } catch (error) {
+    console.error("Error updating reading time:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/reading-stats", async (req, res) => {
+  console.log("📊 Start fetching reading stats");
+ 
+  const { userId } = req.query;
+ 
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+    return res.status(400).json({ error: 'Invalid or missing userId' });
+  }
+ 
+  try {
+    // Fetch BookRead entries
+    const allReads = await BookRead.find({ userId }).sort({ updatedAt: -1 }).lean();
+ 
+    console.log("📚 allReads:", allReads);
+ 
+    const recentReads = allReads.slice(0, 5);
+ 
+    const books = [];
+ 
+    for (const entry of recentReads) {
+      console.log(entry);
+      const Book = await book.findById(entry.bookId);  // Manual lookup by String bookId
+      if (Book) {
+        books.push({
+          name: Book.title,
+          value: entry.minutesRead,
+        });
+      } else {
+        console.warn(`⚠️ Book not found for bookId: ${entry.bookId}`);
+      }
+    }
+ 
+    console.log("📊 Final chart data:", books);
+    res.status(200).json(books);
+ 
+  } catch (err) {
+    console.error("❌ reading-stats error:", err.stack || err.message);
+    res.status(500).json({ error: 'Server Error while fetching reading stats' });
+  }
+});
+
+export default router;

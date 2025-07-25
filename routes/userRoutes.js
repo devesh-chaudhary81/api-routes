@@ -26,7 +26,7 @@ router.delete('/shelf/:userId/:bookId', removeFromMyShelf);
 
 
 router.get("/reading-time/:userId", getReadingTime);
-router.get("/stats/:userId", getUserStats);
+// router.get("/stats/:userId", getUserStats);
 
 router.get('/last5-read/:userId', async (req, res) => {
   const { userId } = req.params;
@@ -57,6 +57,17 @@ router.get('/last5-read/:userId', async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+router.get("/stats/:userId",async(req,res)=>{
+     const { userId } = req.params;
+  const user = await User.findById(userId);
+  if (!user) return res.status(404).send("User not found");
+
+  res.json({
+    shelfCount: user.myShelf.length,
+    favouriteCount: user.favourites.length
+  });
+})
 
 
 export default router;
