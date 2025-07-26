@@ -185,71 +185,51 @@ ${text}
 
 
 // 📄 Upload PDF and return summarized content
-router.post("/quiz-by-range", async (req, res) => {
-  const { pdfUrl, startPage, endPage } = req.body;
+router.post("/quiz-by-topic", async (req, res) => {
+  const { pdfUrl, topic } = req.body;
 
-  if (!pdfUrl || !startPage || !endPage) {
-    return res.status(400).json({ error: "pdfUrl, startPage, and endPage are required" });
-  }
-
-  if (endPage - startPage + 1 > 20) {
-    return res.status(400).json({ error: "Page range should not exceed 20 pages." });
+  if (!pdfUrl || !topic) {
+    return res.status(400).json({ error: "pdfUrl and topic are required" });
   }
 
   try {
-    console.log("🔹 Downloading PDF...");
+    console.log("📥 Downloading PDF...");
     const response = await fetch(pdfUrl);
-    if (!response.ok) throw new Error("Failed to fetch PDF");
-    const fullPdfBytes = await response.arrayBuffer();
+    if (!response.ok) throw new Error("Failed to fetch PDF from URL.");
 
-    const fullPdfDoc = await PDFDocument.load(fullPdfBytes);
-    const newPdfDoc = await PDFDocument.create();
-    const totalPages = fullPdfDoc.getPageCount();
+    const pdfBytes = await response.arrayBuffer();
+    const parsed = await pdfParse(pdfBytes);
+    const fullText = parsed.text;
 
-    if (startPage < 1 || endPage > totalPages) {
-      return res.status(400).json({ error: `Page range must be between 1 and ${totalPages} `});
-    }
-
-    console.log(`🔹 Extracting pages ${startPage} to ${endPage}...`);
-    const pageIndexes = Array.from(
-      { length: endPage - startPage + 1 },
-      (_, i) => i + startPage - 1
-    );
-
-    const extractedPages = await newPdfDoc.copyPages(fullPdfDoc, pageIndexes);
-    extractedPages.forEach((page) => newPdfDoc.addPage(page));
-
-    const rangePdfBytes = await newPdfDoc.save();
-    const parsed = await pdfParse(rangePdfBytes);
-    const rawText = parsed.text;
-
-    const cleaned = rawText
+    const cleaned = fullText
       .replace(/[\r\n\t]+/g, " ")
       .replace(/\s+/g, " ")
-      .replace(/[^a-zA-Z0-9.,;:'\"()?!\- ]/g, "")
+      .replace(/[^a-zA-Z0-9.,;:'"()?!\- ]/g, "")
       .trim();
 
-    if (!cleaned || cleaned.length < 30) {
-      return res.status(400).json({ error: "Not enough valid text found in the selected pages." });
+    if (!cleaned || cleaned.length < 100) {
+      return res.status(400).json({ error: "Not enough valid text found in the PDF." });
     }
 
-    console.log("🔹 Summarizing the full range...");
-    let summary = await summarizeTextRange(cleaned);
+    console.log(`🔍 Searching content related to: "${topic}"`);
+    const relevantText = extractTopicRelatedText(cleaned, topic); // You implement this
 
-    console.log("✅ Range summary generated.");
-    const start = summary.indexOf("[");
-  const end = summary.lastIndexOf("]") + 1;
+    if (!relevantText || relevantText.length < 50) {
+      return res.status(400).json({ error: "Could not find enough content for the topic." });
+    }
 
-  summary = summary.substring(start,end);
+    console.log("🤖 Sending to AI for quiz generation...");
+    const quizArray = await summarizeTextRange(relevantText);
 
-    console.log(summary);
-    res.json({ summary });
+    console.log("✅ Quiz generated successfully.");
+    return res.json({ summary: quizArray });
 
   } catch (err) {
-    console.error("❌ Range Summary Error:", err);
-    res.status(500).json({ error: "Failed to summarize the page range." });
+    console.error("❌ Quiz Generation Error:", err.message);
+    return res.status(500).json({ error: "Quiz generation failed: " + err.message });
   }
 });
+
 
 router.post('/open', async (req, res) => {
   const { userId, bookId, timeSpent } = req.body;
@@ -294,63 +274,64 @@ router.post('/open', async (req, res) => {
 
 // routes/userRoutes.js
 
+function extractTopicRelatedText(text, topic) {
+  const lowerTopic = topic.toLowerCase();
 
-router.post("/Notes-by-range", async (req, res) => {
-  const { pdfUrl, startPage, endPage } = req.body;
+  // Split text into sentences using basic punctuation
+  const sentences = text.split(/(?<=[.?!])\s+/);
 
-  if (!pdfUrl || !startPage || !endPage) {
-    return res.status(400).json({ error: "pdfUrl, startPage, and endPage are required" });
-  }
+  // Filter sentences containing the topic
+  const relevantSentences = sentences.filter(sentence =>
+    sentence.toLowerCase().includes(lowerTopic)
+  );
 
-  if (endPage - startPage + 1 > 20) {
-    return res.status(400).json({ error: "Page range should not exceed 20 pages." });
+  // Limit the output to top 20 sentences or fewer
+  return relevantSentences.slice(0, 20).join(" ");
+}
+
+
+router.post("/notes-by-topic", async (req, res) => {
+  const { pdfUrl, topic } = req.body;
+
+  if (!pdfUrl || !topic) {
+    return res.status(400).json({ error: "pdfUrl and topic are required" });
   }
 
   try {
-    console.log("🔹 Downloading PDF...");
+    console.log("📥 Downloading PDF...");
     const response = await fetch(pdfUrl);
-    if (!response.ok) throw new Error("Failed to fetch PDF");
-    const fullPdfBytes = await response.arrayBuffer();
+    if (!response.ok) throw new Error("Failed to fetch PDF from URL.");
 
-    const fullPdfDoc = await PDFDocument.load(fullPdfBytes);
-    const newPdfDoc = await PDFDocument.create();
-    const totalPages = fullPdfDoc.getPageCount();
+    const pdfBytes = await response.arrayBuffer();
+    const parsed = await pdfParse(pdfBytes);
+    const fullText = parsed.text;
 
-    if (startPage < 1 || endPage > totalPages) {
-      return res.status(400).json({ error: `Page range must be between 1 and ${totalPages} `});
-    }
-
-    console.log(`🔹 Extracting pages ${startPage} to ${endPage}...`);
-    const pageIndexes = Array.from(
-      { length: endPage - startPage + 1 },
-      (_, i) => i + startPage - 1
-    );
-
-    const extractedPages = await newPdfDoc.copyPages(fullPdfDoc, pageIndexes);
-    extractedPages.forEach((page) => newPdfDoc.addPage(page));
-
-    const rangePdfBytes = await newPdfDoc.save();
-    const parsed = await pdfParse(rangePdfBytes);
-    const rawText = parsed.text;
-
-    const cleaned = rawText
+    const cleaned = fullText
       .replace(/[\r\n\t]+/g, " ")
       .replace(/\s+/g, " ")
-      .replace(/[^a-zA-Z0-9.,;:'\"()?!\- ]/g, "")
+      .replace(/[^a-zA-Z0-9.,;:'"()?!\- ]/g, "")
       .trim();
 
-    if (!cleaned || cleaned.length < 30) {
-      return res.status(400).json({ error: "Not enough valid text found in the selected pages." });
+    if (!cleaned || cleaned.length < 100) {
+      return res.status(400).json({ error: "Not enough valid text found in the PDF." });
     }
 
-    console.log("🔹 Summarizing the full range...");
-    const summary = await notesByRange(cleaned);
+    console.log(`🔍 Searching content related to: "${topic}"`);
+    const relevantText = extractTopicRelatedText(cleaned, topic); // You implement this
 
-    console.log("✅ Range summary generated.");
-    res.json({ summary });
+    if (!relevantText || relevantText.length < 50) {
+      return res.status(400).json({ error: "Could not find enough content for the topic." });
+    }
+
+    console.log("🤖 Sending to AI for quiz generation...");
+    const quizArray = await notesByRange(relevantText);
+
+    console.log("✅ Quiz generated successfully.");
+    return res.json({ summary: quizArray });
+
   } catch (err) {
-    console.error("❌ Range Summary Error:", err);
-    res.status(500).json({ error: "Failed to summarize the page range." });
+    console.error("❌ Quiz Generation Error:", err.message);
+    return res.status(500).json({ error: "Quiz generation failed: " + err.message });
   }
 });
 
