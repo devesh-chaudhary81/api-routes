@@ -275,19 +275,21 @@ router.post('/open', async (req, res) => {
 // routes/userRoutes.js
 
 function extractTopicRelatedText(text, topic) {
-  const lowerTopic = topic.toLowerCase();
+  const topicWords = topic.toLowerCase().split(/\s+/); // split into words
 
-  // Split text into sentences using basic punctuation
+  // Split text into sentences
   const sentences = text.split(/(?<=[.?!])\s+/);
 
-  // Filter sentences containing the topic
-  const relevantSentences = sentences.filter(sentence =>
-    sentence.toLowerCase().includes(lowerTopic)
-  );
+  // Filter sentences that contain all topic words (in any order)
+  const relevantSentences = sentences.filter(sentence => {
+    const lowerSentence = sentence.toLowerCase();
+    return topicWords.some(word => lowerSentence.includes(word));
+  });
 
-  // Limit the output to top 20 sentences or fewer
+  // Limit to top 20 sentences
   return relevantSentences.slice(0, 20).join(" ");
 }
+
 
 
 router.post("/notes-by-topic", async (req, res) => {
