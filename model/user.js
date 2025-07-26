@@ -38,7 +38,14 @@ totalReadingTime: { type: Number, default: 0 }, // in minutes
       default: 0
     }
   }
-]
+],
+
+dailyReadingTime: [
+    {
+      date: { type: String }, // e.g., '2025-07-26'
+      minutes: { type: Number, default: 0 }, // Minutes spent on that date
+    }
+  ]
 
 
 })

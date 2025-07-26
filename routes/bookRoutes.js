@@ -18,6 +18,16 @@ const router = Router();
 router.get("/", getBooks)
 router.post("/", AddBook)
 // router.put("/:id", updateBook)
+// GET /api/books/top-rated
+router.get("/top-rated", async (req, res) => {
+  try {
+    const books = await Book.find().sort({ averageRating: -1 }).limit(10);
+    res.json(books);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.delete("/:id", deleteBook)
 
 
@@ -64,7 +74,7 @@ async function summarizeTextRange(text) {
 
  const prompt = `
  🧠 OBJECTIVE
-You are an intelligent quiz generator for digital learning. Given cleaned educational text from a book or study material, your task is to generate 10 high-quality multiple-choice questions (MCQs) that help students test their understanding of the topic.
+You are an intelligent quiz generator for digital learning. Given cleaned educational text from a book or study material, your task is to generate 15 high-quality multiple-choice questions (MCQs), that help students test their understanding of the topic.
 
 
  📚 QUIZ GENERATION RULES
@@ -285,30 +295,41 @@ router.post("/Notes-by-range", async (req, res) => {
   try {
     console.log("🔹 Downloading PDF...");
     const response = await fetch(pdfUrl);
-    if (!response.ok) throw new Error("Failed to fetch PDF");
+    if (!response.ok) throw new Error(`Failed to fetch PDF: ${response.status}`);
+
     const fullPdfBytes = await response.arrayBuffer();
 
+    // Validate that the file is a real PDF (starts with %PDF)
+    const header = Buffer.from(fullPdfBytes).toString("utf8", 0, 4);
+    if (header !== "%PDF") {
+        throw new Error("The fetched file is not a valid PDF");
+    }
+
     const fullPdfDoc = await PDFDocument.load(fullPdfBytes);
-    const newPdfDoc = await PDFDocument.create();
     const totalPages = fullPdfDoc.getPageCount();
 
     if (startPage < 1 || endPage > totalPages) {
-      return res.status(400).json({ error: `Page range must be between 1 and ${totalPages} `});
+        return res.status(400).json({
+            error: `Page range must be between 1 and ${totalPages}`,
+        });
     }
 
     console.log(`🔹 Extracting pages ${startPage} to ${endPage}...`);
     const pageIndexes = Array.from(
-      { length: endPage - startPage + 1 },
-      (_, i) => i + startPage - 1
+        { length: endPage - startPage + 1 },
+        (_, i) => i + startPage - 1
     );
 
+    // Create a new document and copy pages
+    const newPdfDoc = await PDFDocument.create();
     const extractedPages = await newPdfDoc.copyPages(fullPdfDoc, pageIndexes);
     extractedPages.forEach((page) => newPdfDoc.addPage(page));
 
     const rangePdfBytes = await newPdfDoc.save();
+
+    // Parse the extracted text
     const parsed = await pdfParse(rangePdfBytes);
     const rawText = parsed.text;
-
     const cleaned = rawText
       .replace(/[\r\n\t]+/g, " ")
       .replace(/\s+/g, " ")
@@ -467,7 +488,7 @@ router.get("/reading-stats", async (req, res) => {
 
     console.log("📚 allReads:", allReads);
 
-    const recentReads = allReads.slice(0, 5);
+    const recentReads = allReads.slice(0, 10);
 
     const books = [];
 
@@ -513,6 +534,31 @@ router.get("/:id", async (req, res) => {
   } catch (error) {
     console.error("Error fetching book by ID:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/:bookId/rate", async (req, res) => {
+  try {
+    const { bookId } = req.params;
+    const { userId, rating } = req.body;
+
+    const book = await Book.findById(bookId);
+    if (!book) return res.status(404).json({ message: "Book not found" });
+
+    // Check if user already rated
+    const existingRating = book.ratings.find(r => r.userId.toString() === userId);
+    if (existingRating) {
+      existingRating.rating = rating; // Update rating
+    } else {
+      book.ratings.push({ userId, rating });
+    }
+
+    book.calculateAverageRating();
+    await book.save();
+
+    res.json({ averageRating: book.averageRating, ratingsCount: book.ratings.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 export default router;

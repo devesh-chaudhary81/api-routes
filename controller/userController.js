@@ -258,6 +258,45 @@ export const updateUser = async (req, res) => {
   }
 };
 
+export const updateWebsiteTime = async (req, res) => {
+  const { userId, minutesRead } = req.body;
+
+  if (!userId || minutesRead <= 0) {
+    return res.status(400).json({ error: "Invalid data" });
+  }
+
+  const today = new Date().toISOString().split("T")[0]; // 'YYYY-MM-DD'
+
+  try {
+    const user = await User.findById(userId);
+
+    // Increment total time
+    user.totalReadingTime += minutesRead;
+
+    // Update or add today's entry in dailyReadingTime
+    const dayIndex = user.dailyReadingTime.findIndex((entry) => entry.date === today);
+
+    if (dayIndex >= 0) {
+      user.dailyReadingTime[dayIndex].minutes += minutesRead;
+    } else {
+      user.dailyReadingTime.push({ date: today, minutes: minutesRead });
+    }
+
+    // Keep only the last 5 days
+    if (user.dailyReadingTime.length > 5) {
+      user.dailyReadingTime = user.dailyReadingTime.slice(-5);
+    }
+
+    await user.save();
+
+    res.json({ message: "Website time updated successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+
 
 
 export const getReadingTime = async (req, res) => {

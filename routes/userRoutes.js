@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {registerUser, updateUser, login , logout} from "../controller/userController.js";
-import { addToShelf, addToFavourites, getMyShelf, getFavourites,getReadingTime,getUserStats,removeFavourites,removeFromMyShelf } from '../controller/userController.js';
+import { addToShelf, addToFavourites, getMyShelf, getFavourites,getReadingTime,getUserStats,removeFavourites,removeFromMyShelf , updateWebsiteTime} from '../controller/userController.js';
 import User from '../model/user.js';
 import book from '../model/book.js';
 const router = Router();
@@ -9,17 +9,28 @@ const router = Router();
 router.post("/register", registerUser)
 router.post("/login",login)
 router.get("/logout",logout)
+router.post('/favourites/add', addToFavourites);
+router.post('/shelf/add', addToShelf);
 router.put("/:id", updateUser)
 
 
+router.post("/update-website-time", updateWebsiteTime);
 
+router.get("/:id", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
-router.post('/shelf/add', addToShelf);
 router.get('/shelf/:userId', getMyShelf);
 router.delete('/favourites/:userId/:bookId', removeFavourites);
 
 
-router.post('/favourites/add', addToFavourites);
+
 router.get('/favourites/:userId', getFavourites);
 router.delete('/shelf/:userId/:bookId', removeFromMyShelf);
 
@@ -44,7 +55,7 @@ router.get('/last5-read/:userId', async (req, res) => {
       if (seen.has(id)) return false;
       seen.add(id);
       return true;
-    }).slice(0, 5);
+    }).slice(0, 10);
 
     const result = last5.map(view => ({
       title: view.bookId.title,
